@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram Reels Downloader</title>
+  <script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: 280, 80%, 60%;
+      --primary-glow: 280, 100%, 70%;
+      --accent: 320, 80%, 55%;
+      --background: 260, 30%, 8%;
+      --card: 260, 25%, 12%;
+      --border: 260, 20%, 20%;
+      --foreground: 0, 0%, 95%;
+      --muted: 260, 15%, 55%;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background Effects */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(hsl(var(--primary), 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, hsl(var(--primary), 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        hsl(var(--primary), 0.01) 2px,
+        hsl(var(--primary), 0.01) 4px
+      );
+      pointer-events: none;
+    }
+
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .orb-1 {
+      top: 80px;
+      left: 40px;
+      width: 288px;
+      height: 288px;
+      background: hsl(var(--primary), 0.2);
+    }
+
+    .orb-2 {
+      bottom: 80px;
+      right: 40px;
+      width: 384px;
+      height: 384px;
+      background: hsl(var(--accent), 0.1);
+      animation-delay: 1s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-20px) scale(1.05); }
+    }
+
+    /* Main Container */
+    .container {
+      position: relative;
+      z-index: 10;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 48px 16px;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      margin-bottom: 24px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, hsl(var(--primary)), hsl(280, 80%, 55%), hsl(var(--accent)));
+      padding: 2px;
+    }
+
+    .logo-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 14px;
+      background: hsl(var(--card));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo svg {
+      width: 40px;
+      height: 40px;
+      stroke: hsl(var(--primary));
+    }
+
+    h1 {
+      font-size: clamp(1.875rem, 5vw, 3.75rem);
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, hsl(var(--foreground)), hsl(var(--primary)), hsl(var(--accent)));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 40px hsl(var(--primary), 0.3);
+      min-height: 1.2em;
+    }
+
+    .subtitle {
+      color: hsl(var(--muted));
+      font-size: 1.125rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Main Card */
+    .main-card {
+      max-width: 672px;
+      margin: 0 auto;
+    }
+
+    .gradient-border {
+      position: relative;
+      background: hsl(var(--card));
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      padding: 1px;
+      background: linear-gradient(135deg, hsl(var(--primary), 0.5), hsl(var(--accent), 0.3), transparent);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: hsl(var(--muted));
+      margin-bottom: 12px;
+    }
+
+    .label svg {
+      width: 16px;
+      height: 16px;
+      stroke: hsl(var(--accent));
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (min-width: 640px) {
+      .input-group {
+        flex-direction: row;
+      }
+    }
+
+    input[type="url"] {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 1rem;
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--border));
+      border-radius: 8px;
+      color: hsl(var(--foreground));
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    input[type="url"]:focus {
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary), 0.2);
+    }
+
+    input[type="url"]::placeholder {
+      color: hsl(var(--muted));
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-gradient {
+      background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+      color: white;
+      box-shadow: 0 0 20px hsl(var(--primary), 0.4);
+    }
+
+    .btn-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px hsl(var(--primary), 0.6);
+    }
+
+    .btn-gradient:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 32px 0;
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid hsl(var(--border));
+      border-top-color: hsl(var(--primary));
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: hsl(var(--muted));
+      font-size: 0.875rem;
+    }
+
+    /* Result */
+    .result {
+      display: none;
+      margin-top: 24px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .result.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .media-container {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, hsl(var(--primary), 0.5), hsl(var(--accent), 0.3));
+      padding: 2px;
+    }
+
+    .media-container video,
+    .media-container img {
+      width: 100%;
+      display: block;
+      border-radius: 10px;
+    }
+
+    .btn-download {
+      width: 100%;
+      padding: 16px 32px;
+      font-size: 1.125rem;
+    }
+
+    /* Features */
+    .features {
+      margin-top: 80px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
+    @media (min-width: 768px) {
+      .features {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .feature {
+      padding: 24px;
+      background: hsl(var(--card), 0.5);
+      border: 1px solid hsl(var(--border), 0.5);
+      border-radius: 12px;
+      transition: all 0.3s;
+    }
+
+    .feature:hover {
+      border-color: hsl(var(--primary), 0.5);
+      background: hsl(var(--card), 0.8);
+    }
+
+    .feature svg {
+      width: 40px;
+      height: 40px;
+      stroke: hsl(var(--primary));
+      margin-bottom: 16px;
+      transition: transform 0.3s;
+    }
+
+    .feature:hover svg {
+      transform: scale(1.1);
+    }
+
+    .feature h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature p {
+      color: hsl(var(--muted));
+      font-size: 0.875rem;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 64px;
+      text-align: center;
+      color: hsl(var(--muted));
+      font-size: 0.875rem;
+    }
+
+    footer span {
+      color: hsl(var(--primary));
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 16px 24px;
+      background: hsl(var(--card));
+      border: 1px solid hsl(var(--border));
+      border-radius: 8px;
+      color: hsl(var(--foreground));
+      font-size: 0.875rem;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error {
+      border-color: hsl(0, 70%, 50%);
+    }
+
+    .toast.success {
+      border-color: hsl(var(--primary));
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="scanlines"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <main class="container">
+    <header>
+      <div class="logo">
+        <div class="logo-inner">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+            <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+          </svg>
+        </div>
+      </div>
+      <h1><span id="typed"></span></h1>
+      <p class="subtitle">Paste your Instagram Reel link below and download in seconds</p>
+    </header>
+
+    <div class="main-card">
+      <div class="gradient-border">
+        <div class="form-group">
+          <label class="label">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            Instagram Reel URL
+          </label>
+          <div class="input-group">
+            <input type="url" id="urlInput" placeholder="https://www.instagram.com/reel/...">
+            <button class="btn btn-gradient" id="fetchBtn" onclick="fetchInstagramReel()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" x2="12" y1="15" y2="3"/>
+              </svg>
+              Fetch
+            </button>
+          </div>
+        </div>
+
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p class="loading-text">Fetching your reel...</p>
+        </div>
+
+        <div class="result" id="result">
+          <div class="media-container" id="mediaContainer"></div>
+          <button class="btn btn-gradient btn-download" id="downloadBtn" onclick="downloadMedia()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+            Download
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <section class="features">
+      <div class="feature">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        <h3>Lightning Fast</h3>
+        <p>Download reels in seconds with our optimized API</p>
+      </div>
+      <div class="feature">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+        </svg>
+        <h3>High Quality</h3>
+        <p>Get the original quality without compression</p>
+      </div>
+      <div class="feature">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" x2="12" y1="15" y2="3"/>
+        </svg>
+        <h3>Easy to Use</h3>
+        <p>Just paste the link and click download</p>
+      </div>
+    </section>
+
+    <footer>
+      <p>Made with <span>♥</span> by Murali</p>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Initialize Typed.js
+    new Typed('#typed', {
+      strings: ['Instagram Reels Downloader', 'Download Reels Instantly', 'Save Your Favorites'],
+      typeSpeed: 50,
+      backSpeed: 30,
+      backDelay: 2000,
+      loop: true
+    });
+
+    let currentMediaUrl = '';
+    let currentExtension = '';
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast show ' + type;
+      setTimeout(() => {
+        toast.className = 'toast';
+      }, 3000);
+    }
+
+    function fetchInstagramReel() {
+      const url = document.getElementById('urlInput').value.trim();
+      const loading = document.getElementById('loading');
+      const result = document.getElementById('result');
+      const fetchBtn = document.getElementById('fetchBtn');
+
+      if (!url) {
+        showToast('Please enter a valid Instagram URL', 'error');
+        return;
+      }
+
+      loading.classList.add('active');
+      result.classList.remove('active');
+      fetchBtn.disabled = true;
+      fetchBtn.innerHTML = `
+        <svg class="spinning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        </svg>
+        Fetching...
+      `;
+
+      const apiUrl = `https://insta-dl.hazex.workers.dev/?url=${encodeURIComponent(url)}`;
+
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+          loading.classList.remove('active');
+          fetchBtn.disabled = false;
+          fetchBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+            Fetch
+          `;
+
+          if (!data.error && data.result) {
+            currentMediaUrl = data.result.url;
+            currentExtension = data.result.extension;
+
+            const mediaContainer = document.getElementById('mediaContainer');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            if (currentExtension === 'mp4') {
+              mediaContainer.innerHTML = `<video src="${currentMediaUrl}" controls playsinline></video>`;
+            } else {
+              mediaContainer.innerHTML = `<img src="${currentMediaUrl}" alt="Instagram content">`;
+            }
+
+            downloadBtn.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" x2="12" y1="15" y2="3"/>
+              </svg>
+              Download ${currentExtension.toUpperCase()}
+            `;
+
+            result.classList.add('active');
+            showToast('Media fetched successfully!', 'success');
+          } else {
+            showToast(data.error || 'Failed to fetch the media', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          loading.classList.remove('active');
+          fetchBtn.disabled = false;
+          fetchBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" x2="12" y1="15" y2="3"/>
+            </svg>
+            Fetch
+          `;
+          showToast('There was an error fetching the reel', 'error');
+        });
+    }
+
+    function downloadMedia() {
+      if (!currentMediaUrl) return;
+      
+      const a = document.createElement('a');
+      a.href = currentMediaUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.download = `instagram_reel.${currentExtension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // Enter key support
+    document.getElementById('urlInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        fetchInstagramReel();
+      }
+    });
+  </script>
+</body>
+</html>
