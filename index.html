@@ -294,6 +294,76 @@
       font-size: 0.875rem;
     }
 
+    /* Progress Bar */
+    .progress-container {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .progress-container.active {
+      display: block;
+    }
+
+    .progress-bar-wrapper {
+      width: 100%;
+      height: 8px;
+      background: hsl(var(--border));
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-text {
+      text-align: center;
+      font-size: 0.875rem;
+      color: hsl(var(--primary));
+      font-weight: 500;
+    }
+
+    /* Error Message */
+    .error-message {
+      display: none;
+      padding: 16px;
+      background: hsl(0, 70%, 15%);
+      border: 1px solid hsl(0, 70%, 40%);
+      border-radius: 8px;
+      margin-top: 16px;
+      color: hsl(0, 70%, 70%);
+      text-align: center;
+    }
+
+    .error-message.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .error-message svg {
+      width: 24px;
+      height: 24px;
+      stroke: hsl(0, 70%, 60%);
+      margin-bottom: 8px;
+    }
+
+    .error-message h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(0, 70%, 70%);
+      margin-bottom: 4px;
+    }
+
+    .error-message p {
+      font-size: 0.875rem;
+      color: hsl(0, 50%, 60%);
+    }
+
     /* Result */
     .result {
       display: none;
@@ -473,6 +543,23 @@
           <p class="loading-text">Fetching your reel...</p>
         </div>
 
+        <div class="error-message" id="errorMessage">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" x2="12" y1="8" y2="12"/>
+            <line x1="12" x2="12.01" y1="16" y2="16"/>
+          </svg>
+          <h4 id="errorTitle">Error</h4>
+          <p id="errorText">Something went wrong</p>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          <p class="progress-text" id="progressText">0%</p>
+        </div>
+
         <div class="result" id="result">
           <div class="media-container" id="mediaContainer"></div>
           <button class="btn btn-gradient btn-download" id="downloadBtn" onclick="downloadMedia()">
@@ -543,19 +630,68 @@
       }, 3000);
     }
 
+    function showError(title, message) {
+      const errorMessage = document.getElementById('errorMessage');
+      const errorTitle = document.getElementById('errorTitle');
+      const errorText = document.getElementById('errorText');
+      
+      errorTitle.textContent = title;
+      errorText.textContent = message;
+      errorMessage.classList.add('active');
+    }
+
+    function hideError() {
+      document.getElementById('errorMessage').classList.remove('active');
+    }
+
+    function isValidInstagramUrl(url) {
+      const patterns = [
+        /^https?:\/\/(www\.)?instagram\.com\/reel\//,
+        /^https?:\/\/(www\.)?instagram\.com\/p\//,
+        /^https?:\/\/(www\.)?instagram\.com\/tv\//,
+        /^https?:\/\/(www\.)?instagram\.com\/stories\//
+      ];
+      return patterns.some(pattern => pattern.test(url));
+    }
+
+    function updateProgress(percent) {
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      progressBar.style.width = percent + '%';
+      progressText.textContent = Math.round(percent) + '%';
+    }
+
+    function showProgress() {
+      document.getElementById('progressContainer').classList.add('active');
+      updateProgress(0);
+    }
+
+    function hideProgress() {
+      document.getElementById('progressContainer').classList.remove('active');
+    }
+
     function fetchInstagramReel() {
       const url = document.getElementById('urlInput').value.trim();
       const loading = document.getElementById('loading');
       const result = document.getElementById('result');
       const fetchBtn = document.getElementById('fetchBtn');
 
+      hideError();
+      result.classList.remove('active');
+
       if (!url) {
+        showError('Empty URL', 'Please enter an Instagram URL to continue.');
         showToast('Please enter a valid Instagram URL', 'error');
         return;
       }
 
+      if (!isValidInstagramUrl(url)) {
+        showError('Invalid URL', 'Please enter a valid Instagram reel, post, or story URL.');
+        showToast('Invalid Instagram URL format', 'error');
+        return;
+      }
+
       loading.classList.add('active');
-      result.classList.remove('active');
       fetchBtn.disabled = true;
       fetchBtn.innerHTML = `
         <svg class="spinning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -567,7 +703,12 @@
       const apiUrl = `https://insta-dl.hazex.workers.dev/?url=${encodeURIComponent(url)}`;
 
       fetch(apiUrl)
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
         .then(data => {
           loading.classList.remove('active');
           fetchBtn.disabled = false;
@@ -605,6 +746,7 @@
             result.classList.add('active');
             showToast('Media fetched successfully!', 'success');
           } else {
+            showError('Fetch Failed', data.error || 'Could not fetch the media. The reel may be private or unavailable.');
             showToast(data.error || 'Failed to fetch the media', 'error');
           }
         })
@@ -620,6 +762,7 @@
             </svg>
             Fetch
           `;
+          showError('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
           showToast('There was an error fetching the reel', 'error');
         });
     }
@@ -627,14 +770,80 @@
     function downloadMedia() {
       if (!currentMediaUrl) return;
       
-      const a = document.createElement('a');
-      a.href = currentMediaUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.download = `instagram_reel.${currentExtension}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const downloadBtn = document.getElementById('downloadBtn');
+      downloadBtn.disabled = true;
+      downloadBtn.innerHTML = `
+        <svg class="spinning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        </svg>
+        Downloading...
+      `;
+
+      showProgress();
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', currentMediaUrl, true);
+      xhr.responseType = 'blob';
+
+      xhr.onprogress = function(event) {
+        if (event.lengthComputable) {
+          const percent = (event.loaded / event.total) * 100;
+          updateProgress(percent);
+        } else {
+          // If length not computable, show indeterminate progress
+          updateProgress(50);
+        }
+      };
+
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          updateProgress(100);
+          const blob = xhr.response;
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `instagram_reel.${currentExtension}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+          showToast('Download complete!', 'success');
+          
+          setTimeout(() => {
+            hideProgress();
+            resetDownloadBtn();
+          }, 1000);
+        } else {
+          handleDownloadError();
+        }
+      };
+
+      xhr.onerror = function() {
+        handleDownloadError();
+      };
+
+      xhr.send();
+    }
+
+    function handleDownloadError() {
+      hideProgress();
+      // Fallback: open in new tab if CORS blocks fetch
+      window.open(currentMediaUrl, '_blank');
+      showToast('Opening in new tab - right-click to save', 'success');
+      resetDownloadBtn();
+    }
+
+    function resetDownloadBtn() {
+      const downloadBtn = document.getElementById('downloadBtn');
+      downloadBtn.disabled = false;
+      downloadBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" x2="12" y1="15" y2="3"/>
+        </svg>
+        Download ${currentExtension.toUpperCase()}
+      `;
     }
 
     // Enter key support
