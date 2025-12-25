@@ -645,13 +645,13 @@
     }
 
     function isValidInstagramUrl(url) {
-      const patterns = [
-        /^https?:\/\/(www\.)?instagram\.com\/reel\//,
-        /^https?:\/\/(www\.)?instagram\.com\/p\//,
-        /^https?:\/\/(www\.)?instagram\.com\/tv\//,
-        /^https?:\/\/(www\.)?instagram\.com\/stories\//
-      ];
-      return patterns.some(pattern => pattern.test(url));
+      // More flexible pattern that allows query params and various Instagram URL formats
+      return url.includes('instagram.com/') && (
+        url.includes('/reel/') || 
+        url.includes('/p/') || 
+        url.includes('/tv/') || 
+        url.includes('/stories/')
+      );
     }
 
     function updateProgress(percent) {
@@ -762,7 +762,13 @@
             </svg>
             Fetch
           `;
-          showError('Connection Error', 'Unable to connect to the server. Please check your internet connection and try again.');
+          
+          // Check if opened as local file
+          if (window.location.protocol === 'file:') {
+            showError('Local File Error', 'This page cannot be opened as a local file due to browser security. Please host it on a web server (even localhost works).');
+          } else {
+            showError('Connection Error', 'Unable to connect to the server. The API may be temporarily unavailable. Please try again later.');
+          }
           showToast('There was an error fetching the reel', 'error');
         });
     }
